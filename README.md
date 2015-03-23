@@ -6,4 +6,9 @@ This is just (potential) attempt at creating something for [Mini LD #58](http://
 
 The theme for this Mini Ludum Dare is: **PONG**
 
+## Credits
+
++ [Free Mountain Game Background Assets by bevouliin](http://opengameart.org/content/bevouliin-free-mountain-game-background)
+
+
 
