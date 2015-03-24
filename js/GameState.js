@@ -18,6 +18,8 @@ var GameState = function() {
 };
 var p = GameState.prototype;
 GameState.prototype.constructor = GameState;
+
+    p.heroMaxSpeed = 250;
     
     p.background = null;
     p.backgroundSky = null;
@@ -47,6 +49,8 @@ GameState.prototype.constructor = GameState;
         this.game.load.spritesheet("hero-idle", "assets/hero-idle.png", 32, 46);
         this.game.load.spritesheet("hero-jump", "assets/hero-jump.png", 32, 46);
         this.game.load.spritesheet("hero", "assets/hero.png", 32, 46);
+        // this.game.load.spritesheet("cowboy", "assets/cowboy.png", 32, 32, 26);
+        this.game.load.spritesheet("cowboy", "assets/cowboy-lg.png", 64, 64, 26);
         
     };
 
@@ -99,18 +103,33 @@ GameState.prototype.constructor = GameState;
     };
 
     p.createHero = function() {
-        this.hero = this.game.add.sprite(0,0,"hero");
-        this.hero.anchor.set(0.5);
-        this.hero.animations.add("idle", [0,1], 2, true);
-        this.hero.animations.add("jump-up", [2], 1, true);
-        this.hero.animations.add("jump-down", [3], 1, true);
+        this.hero = this.game.add.sprite(0,0,"cowboy");
+        this.hero.anchor.set(0.25);
+
+        // this.hero.animations.add("idle", [0,1], 2, true);
+        // this.hero.animations.add("jump-up", [2], 1, true);
+        // this.hero.animations.add("jump-down", [3], 1, true);
+
+        this.hero.animations.add("idle", [0,1,2,3], 4, true);
+        this.hero.animations.add("shoot", [4,5,6,7], 10).onComplete.add(this.onAnimationShootComplete, this);
+        this.hero.animations.add("walk", [8,9,10,11], 10, true);
+        this.hero.animations.add("jump-shoot", [12,13,15,15], 10, false);
+        this.hero.animations.add("jump-up", [16], 1, true);
+        this.hero.animations.add("jump-down", [16], 1, true);
+
+
         
         this.game.physics.enable(this.hero, Phaser.Physics.ARCADE);
+        this.hero.body.setSize(16, 28, -2, 4);
         // this.hero.animations.play("jump-down");
         
-
     };
 
+    p.onAnimationShootComplete = function(sprite) {
+        // console.log("onAnimationShootComplete(), o=%o", o);
+        sprite.animations.play("idle");
+
+    };
 
 
     // -----------------------------------------
@@ -118,14 +137,93 @@ GameState.prototype.constructor = GameState;
     // @phaser
     p.update = function() {
         // console.log("[GameState], update()");
+        this.updateInput();
         this.updateHero();
         this.updateCollisions();
     };
 
+    p.updateInput = function() {
+        
+        if (this.leftInputIsActive()) {
+            // If the LEFT key is down, set the player velocity to move left
+            this.hero.body.velocity.x = -this.heroMaxSpeed;
+        } else if (this.rightInputIsActive()) {
+            // If the RIGHT key is down, set the player velocity to move right
+             this.hero.body.velocity.x = this.heroMaxSpeed;
+        } else {
+            // Stop the player from moving horizontally
+            this.hero.body.velocity.x = 0;
+        }
+
+        if (this.shootInputIsActive()) {
+            console.log("yoyoyo");
+            this.hero.animations.play("shoot");
+        }
+    };
+
+    // This function should return true when the player activates the "jump" control
+    // In this case, either holding the up arrow or tapping or clicking on the center
+    // part of the screen.
+    p.shootInputIsActive = function(duration) {
+        var isActive = false;
+
+        duration = 1;
+
+        isActive = this.input.keyboard.downDuration(Phaser.Keyboard.SPACEBAR, duration);
+        isActive |= (this.game.input.activePointer.justPressed(duration + 1000/60) &&
+            this.game.input.activePointer.x > this.game.width/4 &&
+            this.game.input.activePointer.x < this.game.width/2 + this.game.width/4);
+
+        return isActive;
+    };
+
+    // This function should return true when the player activates the "go left" control
+    // In this case, either holding the right arrow or tapping or clicking on the left
+    // side of the screen.
+    p.leftInputIsActive = function() {
+        var isActive = false;
+
+        isActive = this.input.keyboard.isDown(Phaser.Keyboard.LEFT);
+        isActive |= this.input.keyboard.isDown(Phaser.Keyboard.A);
+        isActive |= (this.game.input.activePointer.isDown &&
+            this.game.input.activePointer.x < this.game.width/4);
+
+        return isActive;
+    };
+
+    // This function should return true when the player activates the "go right" control
+    // In this case, either holding the right arrow or tapping or clicking on the right
+    // side of the screen.
+    p.rightInputIsActive = function() {
+        var isActive = false;
+
+        isActive = this.input.keyboard.isDown(Phaser.Keyboard.RIGHT);
+        isActive |= this.input.keyboard.isDown(Phaser.Keyboard.D);
+        isActive |= (this.game.input.activePointer.isDown &&
+            this.game.input.activePointer.x > this.game.width/2 + this.game.width/4);
+
+        return isActive;
+    };
+
     p.updateHero = function() {
-        console.log(this.hero.body.velocity.y, this.hero.onGround);
+        // console.log(this.hero.body.velocity.y, this.hero.onGround, this.hero.animations.currentAnim.name);
+        if (this.hero.animations.currentAnim.name=="shoot") {
+            console.log("whoa!");
+            return;
+        }
         if (this.hero.onGround) {
             // this.hero.animations.play("idle");
+            if (this.hero.body.velocity.x > 0) {
+                this.hero.animations.play("walk");
+                this.hero.scale.x = 1;
+            }
+            else if (this.hero.body.velocity.x < 0) {
+                this.hero.animations.play("walk");
+                this.hero.scale.x = -1;
+            }
+            else {
+                this.hero.animations.play("idle");
+            }
         }
         else {
             if (this.hero.body.velocity.y > 0) {
@@ -148,7 +246,7 @@ GameState.prototype.constructor = GameState;
     p.onHeroGroundCollide = function(hero, ground) {
         // console.log("%o", ground);
         this.hero.onGround = true;
-        this.hero.animations.play("idle");
+        
 
     };
 
