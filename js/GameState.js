@@ -20,14 +20,15 @@ var p = GameState.prototype;
 GameState.prototype.constructor = GameState;
 
     p.heroMaxSpeed = 250;
+    p.bulletSpeed = 500;
     
     p.background = null;
     p.backgroundSky = null;
     p.backgroundMountain = null;
 
     p.ground = null;
-
     p.hero = null;
+    p.bullets = null;
 
     p.initialize = function() {
         console.log("[GameState], initialize()");
@@ -44,10 +45,11 @@ GameState.prototype.constructor = GameState;
         this.game.load.image("sky", "assets/sky.png");
         this.game.load.image("mountain", "assets/mountain.png");
         this.game.load.image("tile", "assets/tile.png");
+        this.game.load.spritesheet("bullet", "assets/projectile.png", 16,16);
 
         // hero
-        this.game.load.spritesheet("hero-idle", "assets/hero-idle.png", 32, 46);
-        this.game.load.spritesheet("hero-jump", "assets/hero-jump.png", 32, 46);
+        // this.game.load.spritesheet("hero-idle", "assets/hero-idle.png", 32, 46);
+        // this.game.load.spritesheet("hero-jump", "assets/hero-jump.png", 32, 46);
         this.game.load.spritesheet("hero", "assets/hero.png", 32, 46);
         // this.game.load.spritesheet("cowboy", "assets/cowboy.png", 32, 32, 26);
         this.game.load.spritesheet("cowboy", "assets/cowboy-lg.png", 64, 64, 26);
@@ -65,6 +67,13 @@ GameState.prototype.constructor = GameState;
         this.createBackground();
         this.createGround();
         this.createHero();
+        this.createBullets();
+    };
+
+    p.createBullets = function() {
+        this.bullets = this.game.add.group();
+        this.bullets.enableBody = true;
+        this.bullets.physicsBodyType = Phaser.Physics.ARCADE;
     };
 
     p.createPhysics = function() {
@@ -89,12 +98,11 @@ GameState.prototype.constructor = GameState;
         this.ground.enableBody = true;
         this.ground.physicsBodyType = Phaser.Physics.ARCADE;
 
-        
-
         for (var i = 0; i < 30; i++) {
             var ground = this.ground.create(-400+32*i, 300-16, "tile");
             ground.anchor.set(0.5);
             ground.name = "ground_" + i;
+            ground.body.setSize(32, 32, 0, 16);
         }
 
         this.ground.setAll("body.allowGravity", false);
@@ -113,16 +121,32 @@ GameState.prototype.constructor = GameState;
         this.hero.animations.add("idle", [0,1,2,3], 4, true);
         this.hero.animations.add("shoot", [4,5,6,7], 10).onComplete.add(this.onAnimationShootComplete, this);
         this.hero.animations.add("walk", [8,9,10,11], 10, true);
-        this.hero.animations.add("jump-shoot", [12,13,15,15], 10, false);
+        this.hero.animations.add("jump-shoot", [12,13,14,15], 10, false);
         this.hero.animations.add("jump-up", [16], 1, true);
         this.hero.animations.add("jump-down", [16], 1, true);
 
-
-        
         this.game.physics.enable(this.hero, Phaser.Physics.ARCADE);
-        this.hero.body.setSize(16, 28, -2, 4);
+        this.hero.body.setSize(32, 48, -8, + 12);
         // this.hero.animations.play("jump-down");
         
+    };
+
+    p.createBullet = function(x,y,velocityX,velocityY) {
+                 
+
+        x = x === null ? 0.0 : x;
+        y = y === null ? 0.0 : y;
+        velocityX = velocityX === null ? 0.0 : velocityX;
+        velocityY = velocityY === null ? 0.0 : velocityY;
+
+        var bullet = this.bullets.create(x, y, "bullet");
+        bullet.anchor.set(0.5);
+        bullet.body.allowGravity = false;
+        bullet.body.velocity.set(velocityX, velocityY);
+        bullet.animations.add("default", [0,1,2,3,4], 10, false);
+
+
+
     };
 
     p.onAnimationShootComplete = function(sprite) {
@@ -158,6 +182,7 @@ GameState.prototype.constructor = GameState;
         if (this.shootInputIsActive()) {
             console.log("yoyoyo");
             this.hero.animations.play("shoot");
+            this.createBullet(this.hero.x, this.hero.body.center.y, this.hero.scale.x*this.bulletSpeed,0);
         }
     };
 
@@ -258,6 +283,17 @@ GameState.prototype.constructor = GameState;
 
     p.renderDebug = function() {
         this.game.debug.body(this.hero);
+
+        var _this = this;
+        
+        this.bullets.forEach(function (bullet) {
+            _this.game.debug.body(bullet);
+        });
+
+        this.ground.forEach(function (tile) {
+            _this.game.debug.body(tile);
+        });
+
     };
 
 
