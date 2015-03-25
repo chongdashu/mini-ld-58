@@ -21,6 +21,8 @@ GameState.prototype.constructor = GameState;
 
     p.heroMaxSpeed = 250;
     p.bulletSpeed = 500;
+    p.shotDelay = 1000;
+    p.lastShotTime = null;
     
     p.background = null;
     p.backgroundSky = null;
@@ -64,10 +66,24 @@ GameState.prototype.constructor = GameState;
         console.log("[GameState], create()");
 
         this.createPhysics();
+        this.createKeyCapture();
         this.createBackground();
         this.createGround();
         this.createHero();
         this.createBullets();
+    };
+
+    p.createKeyCapture = function() {
+        // Capture certain keys to prevent their default actions in the browser.
+        // This is only necessary because this is an HTML5 game. Games on other
+        // platforms may not need code like this.
+        this.game.input.keyboard.addKeyCapture([
+            Phaser.Keyboard.LEFT,
+            Phaser.Keyboard.RIGHT,
+            Phaser.Keyboard.UP,
+            Phaser.Keyboard.DOWN,
+            Phaser.Keyboard.SPACEBAR
+        ]);
     };
 
     p.createBullets = function() {
@@ -132,7 +148,8 @@ GameState.prototype.constructor = GameState;
     };
 
     p.createBullet = function(x,y,velocityX,velocityY) {
-                 
+        
+        this.lastShotTime = this.game.time.now;
 
         x = x === null ? 0.0 : x;
         y = y === null ? 0.0 : y;
@@ -144,6 +161,8 @@ GameState.prototype.constructor = GameState;
         bullet.body.allowGravity = false;
         bullet.body.velocity.set(velocityX, velocityY);
         bullet.animations.add("default", [0,1,2,3,4], 10, false);
+
+
 
 
 
@@ -180,10 +199,17 @@ GameState.prototype.constructor = GameState;
         }
 
         if (this.shootInputIsActive()) {
-            console.log("yoyoyo");
-            this.hero.animations.play("shoot");
-            this.createBullet(this.hero.x, this.hero.body.center.y, this.hero.scale.x*this.bulletSpeed,0);
+            this.doPlayerShoot();
         }
+    };
+
+    p.doPlayerShoot = function() {
+        if (this.game.time.now - this.lastShotTime < this.shotDelay) {
+            return;
+        }
+
+        this.hero.animations.play("shoot");
+        this.createBullet(this.hero.x, this.hero.body.center.y, this.hero.scale.x*this.bulletSpeed,0);
     };
 
     // This function should return true when the player activates the "jump" control
@@ -233,7 +259,6 @@ GameState.prototype.constructor = GameState;
     p.updateHero = function() {
         // console.log(this.hero.body.velocity.y, this.hero.onGround, this.hero.animations.currentAnim.name);
         if (this.hero.animations.currentAnim.name=="shoot") {
-            console.log("whoa!");
             return;
         }
         if (this.hero.onGround) {
