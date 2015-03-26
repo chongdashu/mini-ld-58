@@ -18,19 +18,34 @@ var GameState = function() {
 };
 var p = GameState.prototype;
 GameState.prototype.constructor = GameState;
+    
+    // Constants
+    // ---------
+    GameState.GAME_WIDTH = 800;
+    GameState.GAME_HEIGHT = 600;
 
+    GameState.GAME_HALF_WIDTH = GameState.GAME_WIDTH/2;
+    GameState.GAME_HALF_HEIGHT = GameState.GAME_HEIGHT/2;
+
+    // Variables
+    // --------------
     p.heroMaxSpeed = 250;
     p.bulletSpeed = 500;
     p.shotDelay = 1000;
     p.lastShotTime = null;
-    
-    p.background = null;
+
+    // Sprites
+    // -------
+    p.hero = null;
     p.backgroundSky = null;
     p.backgroundMountain = null;
 
+    // Groups
+    // ------
+    p.background = null;
     p.ground = null;
-    p.hero = null;
     p.bullets = null;
+
 
     p.initialize = function() {
         console.log("[GameState], initialize()");
@@ -41,7 +56,10 @@ GameState.prototype.constructor = GameState;
         console.log("[GameState], preload()");
 
         // bounds
-        this.game.world.setBounds(-400, -300, 800, 600);
+        this.game.world.setBounds(
+            -GameState.GAME_HALF_WIDTH,
+            -GameState.GAME_HALF_HEIGHT,
+            GameState.GAME_WIDTH, GameState.GAME_HEIGHT);
 
         // assets
         this.game.load.image("sky", "assets/sky.png");
@@ -71,6 +89,7 @@ GameState.prototype.constructor = GameState;
         this.createGround();
         this.createHero();
         this.createBullets();
+        this.createPaddles();
     };
 
     p.createKeyCapture = function() {
