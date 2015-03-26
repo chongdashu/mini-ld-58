@@ -33,18 +33,22 @@ GameState.prototype.constructor = GameState;
     p.bulletSpeed = 500;
     p.shotDelay = 1000;
     p.lastShotTime = null;
+    p.paddleMargin = 32;
 
     // Sprites
     // -------
     p.hero = null;
     p.backgroundSky = null;
     p.backgroundMountain = null;
+    p.rightPaddle = null;
+    p.leftPaddle = null;
 
     // Groups
     // ------
     p.background = null;
     p.ground = null;
     p.bullets = null;
+    p.paddles = null;
 
 
     p.initialize = function() {
@@ -55,24 +59,25 @@ GameState.prototype.constructor = GameState;
     p.preload = function() {
         console.log("[GameState], preload()");
 
-        // bounds
+        // Bounds
+        // ------
         this.game.world.setBounds(
             -GameState.GAME_HALF_WIDTH,
             -GameState.GAME_HALF_HEIGHT,
             GameState.GAME_WIDTH, GameState.GAME_HEIGHT);
 
-        // assets
+        // Sprites
+        // -------
         this.game.load.image("sky", "assets/sky.png");
         this.game.load.image("mountain", "assets/mountain.png");
         this.game.load.image("tile", "assets/tile.png");
-        this.game.load.spritesheet("bullet", "assets/projectile.png", 16,16);
-
-        // hero
-        // this.game.load.spritesheet("hero-idle", "assets/hero-idle.png", 32, 46);
-        // this.game.load.spritesheet("hero-jump", "assets/hero-jump.png", 32, 46);
+        this.game.load.image("paddle", "assets/paddle.png");
+        
+        // spritesheets
+        // ------------
         this.game.load.spritesheet("hero", "assets/hero.png", 32, 46);
-        // this.game.load.spritesheet("cowboy", "assets/cowboy.png", 32, 32, 26);
         this.game.load.spritesheet("cowboy", "assets/cowboy-lg.png", 64, 64, 26);
+        this.game.load.spritesheet("bullet", "assets/projectile.png", 16,16);
         
     };
 
@@ -90,6 +95,30 @@ GameState.prototype.constructor = GameState;
         this.createHero();
         this.createBullets();
         this.createPaddles();
+
+    };
+
+    p.createPaddles = function() {
+        console.log("[GameState], createPaddles()");
+
+        this.paddles =  this.game.add.group();
+        this.paddles.enableBody = true;
+        this.bullets.physicsBodyType = Phaser.Physics.ARCADE;
+
+        this.rightPaddle = this.paddles.create(GameState.GAME_HALF_WIDTH, 0, "paddle");
+        this.leftPaddle = this.paddles.create(-GameState.GAME_HALF_WIDTH, 0, "paddle");
+
+        this.rightPaddle.position.x -= this.rightPaddle.width;
+        this.leftPaddle.position.x += this.leftPaddle.width;
+
+        this.paddles.forEach(function (paddle) {
+            paddle.body.allowGravity = false;
+            paddle.body.allowRotation = false;
+            paddle.body.immovable = true;
+            paddle.anchor.set(0.5);
+        });
+
+
     };
 
     p.createKeyCapture = function() {
@@ -180,10 +209,6 @@ GameState.prototype.constructor = GameState;
         bullet.body.allowGravity = false;
         bullet.body.velocity.set(velocityX, velocityY);
         bullet.animations.add("default", [0,1,2,3,4], 10, false);
-
-
-
-
 
     };
 
@@ -315,8 +340,6 @@ GameState.prototype.constructor = GameState;
     p.onHeroGroundCollide = function(hero, ground) {
         // console.log("%o", ground);
         this.hero.onGround = true;
-        
-
     };
 
     // @phaser
@@ -337,6 +360,13 @@ GameState.prototype.constructor = GameState;
         this.ground.forEach(function (tile) {
             _this.game.debug.body(tile);
         });
+
+        this.paddles.forEach(function (paddle) {
+            _this.game.debug.body(paddle);
+        });
+
+        this.game.debug.spriteInfo(this.leftPaddle, 32, 32);
+        this.game.debug.spriteInfo(this.rightPaddle, 32, 132);
 
     };
 
