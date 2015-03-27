@@ -212,7 +212,10 @@ GameState.prototype.constructor = GameState;
         bullet.anchor.set(0.5);
         bullet.body.allowGravity = false;
         bullet.body.velocity.set(velocityX, velocityY);
+        bullet.body.collideWorldBounds = true;
+        bullet.body.bounce.set(1);  // 100% energy return
         bullet.animations.add("default", [0,1,2,3,4], 10, false);
+
 
     };
 
@@ -240,7 +243,7 @@ GameState.prototype.constructor = GameState;
             if (paddle.position.y - paddle.height/2 <= -GameState.GAME_HALF_HEIGHT) {
                 paddle.body.velocity.y = 100;
             }
-            if (paddle.position.y + paddle.height/2 >= GameState.GAME_HALF_HEIGHT - _this.ground.height) {
+            if (paddle.position.y + paddle.height/2 >= GameState.GAME_HALF_HEIGHT - _this.ground.height/2) {
                 paddle.body.velocity.y = -100;
             }
         });
@@ -352,19 +355,28 @@ GameState.prototype.constructor = GameState;
     p.updateCollisions = function() {
         this.game.physics.arcade.collide(this.hero, this.ground, this.onHeroGroundCollide, null, this);
         this.game.physics.arcade.collide(this.paddles, this.ground, this.onPaddleGroundCollide, null, this);
-        this.game.physics.arcade.collide(this.bullets, this.paddles, this.onBulletPaddleCollide, this.onBulletPaddleJustCollide, this);
+        this.game.physics.arcade.collide(this.bullets, this.paddles, this.onBulletPaddleCollide, null, this);
+        this.game.physics.arcade.collide(this.bullets, this.ground, this.onBulletGroundCollide, null, this);
     };
 
-    p.onBulletPaddleJustCollide = function(bullet, paddle) {
-        console.log("[GameState] onBulletPaddleJustCollide()");
-        console.log("bullet.body.velocity=%s", bullet.body.velocity.x);
-        bullet.body.velocity.x *= -1.1;
-        return false;
+    p.onBulletGroundCollide = function(bullet, ground) {
+        var relativeIntersectY = ground.y - bullet.y;
+        var normalizedRelativeIntersectY = (relativeIntersectY) / bullet.height/2;
+        var angleInDeg = normalizedRelativeIntersectY * 90;
 
+        bullet.body.velocity.x = this.bulletSpeed*Math.cos(Phaser.Math.degToRad(angleInDeg));
+        bullet.body.velocity.y = this.bulletSpeed*-Math.sin(Phaser.Math.degToRad(angleInDeg));
     };
 
     p.onBulletPaddleCollide = function(bullet, paddle) {
         console.log("[GameState] onBulletPaddleCollide()");
+
+        var relativeIntersectY = paddle.y - bullet.y;
+        var normalizedRelativeIntersectY = (relativeIntersectY) / bullet.height/2;
+        var angleInDeg = normalizedRelativeIntersectY * 90;
+
+        bullet.body.velocity.x = this.bulletSpeed*Math.cos(Phaser.Math.degToRad(angleInDeg));
+        bullet.body.velocity.y = this.bulletSpeed*-Math.sin(Phaser.Math.degToRad(angleInDeg));
         
     };
 
