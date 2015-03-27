@@ -21,8 +21,8 @@ GameState.prototype.constructor = GameState;
     
     // Constants
     // ---------
-    GameState.GAME_WIDTH = 800;
-    GameState.GAME_HEIGHT = 600;
+    GameState.GAME_WIDTH = 480;
+    GameState.GAME_HEIGHT = 320;
 
     GameState.GAME_HALF_WIDTH = GameState.GAME_WIDTH/2;
     GameState.GAME_HALF_HEIGHT = GameState.GAME_HEIGHT/2;
@@ -51,6 +51,10 @@ GameState.prototype.constructor = GameState;
     p.bullets = null;
     p.paddles = null;
 
+    // Emitters
+    // --------
+    p.paddleEmitter = null;
+
 
     p.initialize = function() {
         console.log("[GameState], initialize()");
@@ -73,6 +77,9 @@ GameState.prototype.constructor = GameState;
         this.game.load.image("mountain", "assets/mountain.png");
         this.game.load.image("tile", "assets/tile.png");
         this.game.load.image("paddle", "assets/paddle.png");
+
+        game.load.image('paddle-particle-1', 'assets/paddle-particle-1.png');
+        game.load.image('paddle-particle-2', 'assets/paddle-particle-2.png');
         
         // spritesheets
         // ------------
@@ -96,7 +103,14 @@ GameState.prototype.constructor = GameState;
         this.createHero();
         this.createBullets();
         this.createPaddles();
+        this.createEmitters();
 
+    };
+
+    p.createEmitters = function() {
+        this.paddleEmitter= this.game.add.emitter(0, 0, 50);
+        this.paddleEmitter.makeParticles(["paddle-particle-1", "paddle-particle-2"]);
+        this.paddleEmitter.gravity = this.game.physics.arcade.gravity.y;
     };
 
     p.createPaddles = function() {
@@ -166,8 +180,8 @@ GameState.prototype.constructor = GameState;
         this.ground.enableBody = true;
         this.ground.physicsBodyType = Phaser.Physics.ARCADE;
 
-        for (var i = 0; i < 30; i++) {
-            var ground = this.ground.create(-400+32*i, 300-16, "tile");
+        for (var i = 0; i < GameState.GAME_WIDTH/32; i++) {
+            var ground = this.ground.create(16+ -GameState.GAME_HALF_WIDTH+32*i, GameState.GAME_HALF_HEIGHT-16, "tile");
             ground.anchor.set(0.5);
             ground.name = "ground_" + i;
             ground.body.setSize(32, 32, 0, 16);
@@ -377,7 +391,13 @@ GameState.prototype.constructor = GameState;
 
         bullet.body.velocity.x = this.bulletSpeed*Math.cos(Phaser.Math.degToRad(angleInDeg));
         bullet.body.velocity.y = this.bulletSpeed*-Math.sin(Phaser.Math.degToRad(angleInDeg));
-        
+
+        this.paddleEmitter.x = (bullet.x + paddle.x)/2;
+        this.paddleEmitter.y = (bullet.y + paddle.y)/2;
+
+        console.log("this.paddleEmitter=(%s,%s)", this.paddleEmitter.x, this.paddleEmitter.y);
+
+        this.paddleEmitter.start(true, 2000, null, 5);
     };
 
     p.onPaddleGroundCollide = function(paddle, ground) {
