@@ -34,6 +34,7 @@ GameState.prototype.constructor = GameState;
     p.shotDelay = 1000;
     p.lastShotTime = null;
     p.paddleMargin = 32;
+    p.paddleSpeedDefault = 100;
 
     // Sprites
     // -------
@@ -113,10 +114,13 @@ GameState.prototype.constructor = GameState;
 
         this.paddles.forEach(function (paddle) {
             paddle.body.allowGravity = false;
-            paddle.body.allowRotation = false;
             paddle.body.immovable = true;
             paddle.anchor.set(0.5);
+            paddle.body.mass = 10000;
         });
+
+        this.rightPaddle.body.velocity.y = this.paddleSpeedDefault;
+        this.leftPaddle.body.velocity.y = this.paddleSpeedDefault;
 
 
     };
@@ -226,7 +230,20 @@ GameState.prototype.constructor = GameState;
         // console.log("[GameState], update()");
         this.updateInput();
         this.updateHero();
+        this.updatePaddles();
         this.updateCollisions();
+    };
+
+    p.updatePaddles = function() {
+        var _this = this;
+        this.paddles.forEach(function(paddle) {
+            if (paddle.position.y - paddle.height/2 <= -GameState.GAME_HALF_HEIGHT) {
+                paddle.body.velocity.y = 100;
+            }
+            if (paddle.position.y + paddle.height/2 >= GameState.GAME_HALF_HEIGHT - _this.ground.height) {
+                paddle.body.velocity.y = -100;
+            }
+        });
     };
 
     p.updateInput = function() {
@@ -330,11 +347,31 @@ GameState.prototype.constructor = GameState;
             }
         }
         
-       
     };
 
     p.updateCollisions = function() {
         this.game.physics.arcade.collide(this.hero, this.ground, this.onHeroGroundCollide, null, this);
+        this.game.physics.arcade.collide(this.paddles, this.ground, this.onPaddleGroundCollide, null, this);
+        this.game.physics.arcade.collide(this.bullets, this.paddles, this.onBulletPaddleCollide, this.onBulletPaddleJustCollide, this);
+    };
+
+    p.onBulletPaddleJustCollide = function(bullet, paddle) {
+        console.log("[GameState] onBulletPaddleJustCollide()");
+        console.log("bullet.body.velocity=%s", bullet.body.velocity.x);
+        bullet.body.velocity.x *= -1.1;
+        return false;
+
+    };
+
+    p.onBulletPaddleCollide = function(bullet, paddle) {
+        console.log("[GameState] onBulletPaddleCollide()");
+        
+    };
+
+    p.onPaddleGroundCollide = function(paddle, ground) {
+        console.log("[GameState], onPaddleGroundCollide, paddle=%o", paddle);
+        paddle.body.velocity.x = -this.paddleSpeedDefault;
+        return false;
     };
 
     p.onHeroGroundCollide = function(hero, ground) {
