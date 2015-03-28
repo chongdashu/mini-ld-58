@@ -110,7 +110,7 @@ GameState.prototype.constructor = GameState;
         this.createBullets();
         this.createPaddles();
         this.createEmitters();
-        this.createHeightMarkers();
+        // this.createHeightMarkers();
     };
 
     // This function draws horizontal lines across the stage
