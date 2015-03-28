@@ -34,7 +34,7 @@ GameState.prototype.constructor = GameState;
     p.shotDelay = 500;
     p.lastShotTime = null;
     p.paddleMargin = 32;
-    p.paddleSpeedDefault = 50;
+    p.paddleSpeedDefault = 100;
     p.autoPaddles = true;
     p.jumpSpeed = 400;
 
