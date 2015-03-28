@@ -35,6 +35,7 @@ GameState.prototype.constructor = GameState;
     p.lastShotTime = null;
     p.paddleMargin = 32;
     p.paddleSpeedDefault = 100;
+    p.autoPaddles = true;
 
     // Sprites
     // -------
@@ -226,7 +227,7 @@ GameState.prototype.constructor = GameState;
         bullet.anchor.set(0.5);
         bullet.body.allowGravity = false;
         bullet.body.velocity.set(velocityX, velocityY);
-        bullet.body.collideWorldBounds = true;
+        // bullet.body.collideWorldBounds = true;
         bullet.body.bounce.set(1);  // 100% energy return
         bullet.animations.add("default", [0,1,2,3,4], 10, false);
 
@@ -257,7 +258,7 @@ GameState.prototype.constructor = GameState;
             if (paddle.position.y - paddle.height/2 <= -GameState.GAME_HALF_HEIGHT) {
                 paddle.body.velocity.y = 100;
             }
-            if (paddle.position.y + paddle.height/2 >= GameState.GAME_HALF_HEIGHT - _this.ground.height/2) {
+            if (paddle.position.y + paddle.height/2 >= GameState.GAME_HALF_HEIGHT +48) {
                 paddle.body.velocity.y = -100;
             }
         });
@@ -278,6 +279,22 @@ GameState.prototype.constructor = GameState;
 
         if (this.shootInputIsActive()) {
             this.doPlayerShoot();
+        }
+
+        if (this.input.keyboard.isDown(Phaser.Keyboard.O)) {
+            this.autoPaddles = false;
+            this.paddles.forEach(function(paddle) {
+                paddle.body.velocity.y = 0;
+                paddle.position.y++;
+            });
+        }
+
+        if (this.input.keyboard.isDown(Phaser.Keyboard.P)) {
+            this.autoPaddles = false;
+            this.paddles.forEach(function(paddle) {
+                paddle.body.velocity.y = 0;
+                paddle.position.y--;
+            });
         }
     };
 
@@ -370,7 +387,7 @@ GameState.prototype.constructor = GameState;
         this.game.physics.arcade.collide(this.hero, this.ground, this.onHeroGroundCollide, null, this);
         this.game.physics.arcade.collide(this.paddles, this.ground, this.onPaddleGroundCollide, null, this);
         this.game.physics.arcade.collide(this.bullets, this.paddles, this.onBulletPaddleCollide, null, this);
-        this.game.physics.arcade.collide(this.bullets, this.ground, this.onBulletGroundCollide, null, this);
+        // this.game.physics.arcade.collide(this.bullets, this.ground, this.onBulletGroundCollide, null, this);
     };
 
     p.onBulletGroundCollide = function(bullet, ground) {
@@ -378,20 +395,30 @@ GameState.prototype.constructor = GameState;
         var normalizedRelativeIntersectY = (relativeIntersectY) / bullet.height/2;
         var angleInDeg = normalizedRelativeIntersectY * 90;
 
-        bullet.body.velocity.x = this.bulletSpeed*Math.cos(Phaser.Math.degToRad(angleInDeg));
+
+        bullet.body.velocity.x = this.bulletSpeed*xMod*Math.cos(Phaser.Math.degToRad(angleInDeg));
         bullet.body.velocity.y = this.bulletSpeed*-Math.sin(Phaser.Math.degToRad(angleInDeg));
     };
 
     p.onBulletPaddleCollide = function(bullet, paddle) {
         console.log("[GameState] onBulletPaddleCollide()");
 
-        var relativeIntersectY = paddle.y - bullet.y;
-        var normalizedRelativeIntersectY = (relativeIntersectY) / bullet.height/2;
+        var relativeIntersectY = bullet.y - paddle.y;
+        var normalizedRelativeIntersectY = (relativeIntersectY) / (paddle.height/2);
         var angleInDeg = normalizedRelativeIntersectY * 90;
 
-        bullet.body.velocity.x = this.bulletSpeed*Math.cos(Phaser.Math.degToRad(angleInDeg));
-        bullet.body.velocity.y = this.bulletSpeed*-Math.sin(Phaser.Math.degToRad(angleInDeg));
+        console.log("relativeIntersectY=%s", relativeIntersectY);
+        console.log("normalizedRelativeIntersectY=%s", normalizedRelativeIntersectY);
+        console.log("angleInDeg=%s", angleInDeg);
 
+        var xMod = bullet.x > paddle.x ? 1 : -1;
+        console.log("xMod=%s", xMod);
+
+        bullet.body.velocity.x = 100*xMod*Math.cos(Phaser.Math.degToRad(angleInDeg));
+        bullet.body.velocity.y = 100*Math.sin(Phaser.Math.degToRad(angleInDeg));
+
+        console.log("bullet.body.velocity=(%s,%s(", bullet.body.velocity.x, bullet.body.velocity.y);
+        
         this.paddleEmitter.x = (bullet.x + paddle.x)/2;
         this.paddleEmitter.y = (bullet.y + paddle.y)/2;
 
