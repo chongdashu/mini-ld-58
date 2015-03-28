@@ -31,10 +31,10 @@ GameState.prototype.constructor = GameState;
     // --------------
     p.heroMaxSpeed = 250;
     p.bulletSpeed = 500;
-    p.shotDelay = 1000;
+    p.shotDelay = 500;
     p.lastShotTime = null;
     p.paddleMargin = 32;
-    p.paddleSpeedDefault = 100;
+    p.paddleSpeedDefault = 50;
     p.autoPaddles = true;
     p.jumpSpeed = 400;
 
@@ -274,6 +274,7 @@ GameState.prototype.constructor = GameState;
         this.updateHero();
         this.updatePaddles();
         this.updateInput();
+        
     };
 
     p.updatePaddles = function() {
@@ -285,6 +286,18 @@ GameState.prototype.constructor = GameState;
             if (paddle.position.y + paddle.height/2 >= GameState.GAME_HALF_HEIGHT +48) {
                 paddle.body.velocity.y = -100;
             }
+
+            if (paddle.storedVelocityY) {
+                if (!paddle.body.wasTouching.up) {
+                    paddle.body.velocity.y = Math.sign(paddle.storedVelocityY)*_this.paddleSpeedDefault;
+                    console.log(paddle.body.velocity.y);
+                    paddle.storedVelocityY = null;
+                }
+
+            }
+
+  
+       
         });
     };
 
@@ -323,20 +336,10 @@ GameState.prototype.constructor = GameState;
 
         // Jump logic
         // ----------
-
-
-        // If the player is touching the ground, let him have 2 jumps
-
-        if (this.hero.onGround) {
-            this.jumps = 2;
-            this.jumping = false;
-        }
-        
-
     
         // Jump!
         if (this.jumps > 0 && this.upInputIsActive(5)) {
-            console.log("?????");
+            
             this.hero.body.velocity.y = -this.jumpSpeed;
             this.jumping = true;
         }
@@ -372,7 +375,7 @@ GameState.prototype.constructor = GameState;
             this.game.input.activePointer.x > this.game.width/4 &&
             this.game.input.activePointer.x < this.game.width/2 + this.game.width/4);
 
-        console.log("[GameState], upInputIsActive(), %s", isActive);
+        
 
         return isActive;
     };
@@ -383,6 +386,7 @@ GameState.prototype.constructor = GameState;
         }
 
         this.hero.animations.play("shoot");
+
         this.createBullet(this.hero.x, this.hero.body.center.y, this.hero.scale.x*this.bulletSpeed,0);
     };
 
@@ -431,11 +435,23 @@ GameState.prototype.constructor = GameState;
     };
 
     p.updateHero = function() {
-        // console.log(this.hero.body.velocity.y, this.hero.onGround, this.hero.animations.currentAnim.name);
+
+        this.hero.isOnGround = this.hero.body.touching.down;
+
+
+        // Jumping
+        // -------
+        if (this.hero.isOnGround) {
+            this.jumps = 2;
+            this.jumping = false;
+        }
+
+        // Animation
+        // ---------
         if (this.hero.animations.currentAnim.name=="shoot") {
             return;
         }
-        if (this.hero.onGround) {
+        if (this.hero.isOnGround) {
             // this.hero.animations.play("idle");
             if (this.hero.body.velocity.x > 0) {
                 this.hero.animations.play("walk");
@@ -464,9 +480,18 @@ GameState.prototype.constructor = GameState;
 
     p.updateCollisions = function() {
         this.game.physics.arcade.collide(this.hero, this.ground, this.onHeroGroundCollide, null, this);
+        this.game.physics.arcade.collide(this.hero, this.paddles, this.onHeroPaddleCollide, this.onHeroPaddlePreCollide, this);
         this.game.physics.arcade.collide(this.paddles, this.ground, this.onPaddleGroundCollide, null, this);
         this.game.physics.arcade.collide(this.bullets, this.paddles, this.onBulletPaddleCollide, null, this);
         // this.game.physics.arcade.collide(this.bullets, this.ground, this.onBulletGroundCollide, null, this);
+    };
+
+    p.onHeroPaddleCollide = function(hero, paddle) {
+        if (paddle.body.touching.up) {
+            console.log("touch.");
+            paddle.storedVelocityY = paddle.body.velocity.y;
+            paddle.body.velocity.y = paddle.storedVelocityY * 0.95;
+        }
     };
 
     p.onBulletGroundCollide = function(bullet, ground) {
@@ -514,7 +539,7 @@ GameState.prototype.constructor = GameState;
 
     p.onHeroGroundCollide = function(hero, ground) {
         // console.log("%o", ground);
-        this.hero.onGround = true;
+        this.hero.isOnGround = true;
     };
 
     // @phaser
