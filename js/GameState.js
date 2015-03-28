@@ -36,6 +36,7 @@ GameState.prototype.constructor = GameState;
     p.paddleMargin = 32;
     p.paddleSpeedDefault = 100;
     p.autoPaddles = true;
+    p.jumpSpeed = 400;
 
     // Sprites
     // -------
@@ -55,6 +56,10 @@ GameState.prototype.constructor = GameState;
     // Emitters
     // --------
     p.paddleEmitter = null;
+
+    // Bitmaps
+    // -------
+    p.heightMarkers = null;
 
 
     p.initialize = function() {
@@ -105,8 +110,27 @@ GameState.prototype.constructor = GameState;
         this.createBullets();
         this.createPaddles();
         this.createEmitters();
-
+        this.createHeightMarkers();
     };
+
+    // This function draws horizontal lines across the stage
+    p.createHeightMarkers = function() {
+        // Create a bitmap the same size as the stage
+        this.heightMarkers = this.game.add.bitmapData(this.game.width, this.game.height);
+
+        // These functions use the canvas context to draw lines using the canvas API
+        var y=0;
+        for(y = this.game.height; y >= 0; y -= 32) {
+            this.heightMarkers.context.beginPath();
+            this.heightMarkers.context.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+            this.heightMarkers.context.moveTo(-GameState.GAME_WIDTH*2, y);
+            this.heightMarkers.context.lineTo(GameState.GAME_WIDTH, y);
+            this.heightMarkers.context.stroke();
+        }
+
+        this.game.add.image(-GameState.GAME_HALF_WIDTH, -GameState.GAME_HALF_HEIGHT, this.heightMarkers);
+    };
+
 
     p.createEmitters = function() {
         this.paddleEmitter= this.game.add.emitter(0, 0, 50);
@@ -161,7 +185,7 @@ GameState.prototype.constructor = GameState;
 
     p.createPhysics = function() {
         this.game.physics.startSystem(Phaser.Physics.ARCADE);
-        this.game.physics.arcade.gravity.y = 500;
+        this.game.physics.arcade.gravity.y = 800;
     };
 
     p.createBackground = function() {
@@ -246,10 +270,10 @@ GameState.prototype.constructor = GameState;
     // @phaser
     p.update = function() {
         // console.log("[GameState], update()");
-        this.updateInput();
+        this.updateCollisions();
         this.updateHero();
         this.updatePaddles();
-        this.updateCollisions();
+        this.updateInput();
     };
 
     p.updatePaddles = function() {
@@ -296,6 +320,61 @@ GameState.prototype.constructor = GameState;
                 paddle.position.y--;
             });
         }
+
+        // Jump logic
+        // ----------
+
+
+        // If the player is touching the ground, let him have 2 jumps
+
+        if (this.hero.onGround) {
+            this.jumps = 2;
+            this.jumping = false;
+        }
+        
+
+    
+        // Jump!
+        if (this.jumps > 0 && this.upInputIsActive(5)) {
+            console.log("?????");
+            this.hero.body.velocity.y = -this.jumpSpeed;
+            this.jumping = true;
+        }
+
+        // Reduce the number of available jumps if the jump input is released
+        if (this.jumping && this.upInputReleased()) {
+            this.jumps--;
+            this.jumping = false;
+        }
+
+
+    };
+
+    // This function returns true when the player releases the "jump" control
+    p.upInputReleased = function() {
+        var released = false;
+
+        released = this.input.keyboard.upDuration(Phaser.Keyboard.UP);
+        released |= this.game.input.activePointer.justReleased();
+
+        return released;
+    };
+
+    // This function should return true when the player activates the "jump" control
+    // In this case, either holding the up arrow or tapping or clicking on the center
+    // part of the screen.
+    p.upInputIsActive = function(duration) {
+
+        var isActive = false;
+
+        isActive = this.input.keyboard.downDuration(Phaser.Keyboard.UP, duration);
+        isActive |= (this.game.input.activePointer.justPressed(duration + 1000/60) &&
+            this.game.input.activePointer.x > this.game.width/4 &&
+            this.game.input.activePointer.x < this.game.width/2 + this.game.width/4);
+
+        console.log("[GameState], upInputIsActive(), %s", isActive);
+
+        return isActive;
     };
 
     p.doPlayerShoot = function() {
@@ -414,8 +493,8 @@ GameState.prototype.constructor = GameState;
         var xMod = bullet.x > paddle.x ? 1 : -1;
         console.log("xMod=%s", xMod);
 
-        bullet.body.velocity.x = 100*xMod*Math.cos(Phaser.Math.degToRad(angleInDeg));
-        bullet.body.velocity.y = 100*Math.sin(Phaser.Math.degToRad(angleInDeg));
+        bullet.body.velocity.x = this.bulletSpeed*xMod*Math.cos(Phaser.Math.degToRad(angleInDeg));
+        bullet.body.velocity.y = this.bulletSpeed*Math.sin(Phaser.Math.degToRad(angleInDeg));
 
         console.log("bullet.body.velocity=(%s,%s(", bullet.body.velocity.x, bullet.body.velocity.y);
         
