@@ -52,6 +52,7 @@ GameState.prototype.constructor = GameState;
     p.ground = null;
     p.bullets = null;
     p.paddles = null;
+    p.enemies = null;
 
     // Emitters
     // --------
@@ -92,6 +93,7 @@ GameState.prototype.constructor = GameState;
         this.game.load.spritesheet("hero", "assets/hero.png", 32, 46);
         this.game.load.spritesheet("cowboy", "assets/cowboy-lg.png", 64, 64, 26);
         this.game.load.spritesheet("bullet", "assets/projectile.png", 16,16);
+        this.game.load.spritesheet("enemy-blue", "assets/enemy-blue.png", 32, 32);
         
     };
 
@@ -107,9 +109,11 @@ GameState.prototype.constructor = GameState;
         this.createBackground();
         this.createGround();
         this.createHero();
+        this.createEnemies();
         this.createBullets();
         this.createPaddles();
         this.createEmitters();
+
         // this.createHeightMarkers();
     };
 
@@ -215,6 +219,21 @@ GameState.prototype.constructor = GameState;
         this.ground.setAll("body.allowGravity", false);
         this.ground.setAll("body.immovable", true);
            
+    };
+
+    p.createEnemies = function() {
+        this.enemies = this.game.add.group();
+        this.enemies.enableBody = true;
+        this.enemies.physicsBodyType = Phaser.Physics.ARCADE;
+    };
+
+    p.createEnemy = function(key,x,y) {
+        x = x === null ? 0.0 : x;
+        y = y === null ? 0.0 : y;
+        var enemy = this.enemies.create(x,y,key);
+        enemy.animations.add("walk", [0,1,2,3,4,5], 8, true);
+        enemy.animations.play("walk");
+
     };
 
     p.createHero = function() {
@@ -350,6 +369,11 @@ GameState.prototype.constructor = GameState;
             this.jumping = false;
         }
 
+        // Debug 
+        // -----
+        if (this.input.keyboard.downDuration(Phaser.Keyboard.E, 1)) {
+            this.createEnemy("enemy-blue");
+        }
 
     };
 
@@ -483,6 +507,7 @@ GameState.prototype.constructor = GameState;
         this.game.physics.arcade.collide(this.hero, this.paddles, this.onHeroPaddleCollide, this.onHeroPaddlePreCollide, this);
         this.game.physics.arcade.collide(this.paddles, this.ground, this.onPaddleGroundCollide, null, this);
         this.game.physics.arcade.collide(this.bullets, this.paddles, this.onBulletPaddleCollide, null, this);
+        this.game.physics.arcade.collide(this.enemies, this.ground);
         // this.game.physics.arcade.collide(this.bullets, this.ground, this.onBulletGroundCollide, null, this);
     };
 
