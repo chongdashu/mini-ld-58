@@ -232,10 +232,13 @@ GameState.prototype.constructor = GameState;
         y = y === null ? 0.0 : y;
         velocityX = velocityX === null ? 0.0 : velocityX;
         velocityY = velocityY === null ? 0.0 : velocityY;
-        
+
         var enemy = this.enemies.create(x,y,key);
         enemy.animations.add("walk", [0,1,2,3,4,5], 8, true);
         enemy.animations.play("walk");
+        enemy.body.velocity.set(velocityX, velocityY);
+        enemy.body.collideWorldBounds = true;
+        enemy.body.bounce.set(1,0);
 
     };
 
@@ -375,7 +378,7 @@ GameState.prototype.constructor = GameState;
         // Debug 
         // -----
         if (this.input.keyboard.downDuration(Phaser.Keyboard.E, 1)) {
-            this.createEnemy("enemy-blue");
+            this.createEnemy("enemy-blue", 0, 0, -120, 0);
         }
 
     };
