@@ -227,9 +227,12 @@ GameState.prototype.constructor = GameState;
         this.enemies.physicsBodyType = Phaser.Physics.ARCADE;
     };
 
-    p.createEnemy = function(key,x,y) {
+    p.createEnemy = function(key,x,y, velocityX, velocityY) {
         x = x === null ? 0.0 : x;
         y = y === null ? 0.0 : y;
+        velocityX = velocityX === null ? 0.0 : velocityX;
+        velocityY = velocityY === null ? 0.0 : velocityY;
+        
         var enemy = this.enemies.create(x,y,key);
         enemy.animations.add("walk", [0,1,2,3,4,5], 8, true);
         enemy.animations.play("walk");
