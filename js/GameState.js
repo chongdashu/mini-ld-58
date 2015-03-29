@@ -483,7 +483,7 @@ GameState.prototype.constructor = GameState;
 
         this.hero.isOnGround = this.hero.body.touching.down;
         this.hero.hurtTimer = Math.max(0,this.hero.hurtTimer-this.game.time.elapsed);
-        console.log(this.hero.hurtTimer);
+        
 
         // Jumping
         // -------
