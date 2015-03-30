@@ -50,6 +50,7 @@ GameState.prototype.constructor = GameState;
     p.maxLives = 3;
     p.isMusicEnabled = true;
     p.isSoundEnabled = true;
+    p.highScore = 0;
 
     // Timers 
     // ------
@@ -126,6 +127,11 @@ GameState.prototype.constructor = GameState;
         this.game.load.audio("enemy-burst-1", "assets/enemy-burst-1.wav");
         this.game.load.audio("enemy-burst-2", "assets/enemy-burst-2.wav");
         this.game.load.audio("enemy-burst-3", "assets/enemy-burst-3.wav");
+        this.game.load.audio("enemy-bump-1", "assets/enemy-bump-1.wav");
+        this.game.load.audio("enemy-bump-2", "assets/enemy-bump-2.wav");
+        this.game.load.audio("paddle-hit-1", "assets/paddle-hit-1.wav");
+        this.game.load.audio("paddle-hit-2", "assets/paddle-hit-2.wav");
+        this.game.load.audio("paddle-hit-3", "assets/paddle-hit-3.wav");
         this.game.load.audio("music", "assets/music-digital-voyage.mp3");
         
         // spritesheets
@@ -139,6 +145,7 @@ GameState.prototype.constructor = GameState;
     };
 
     p.doGameOver = function() {
+        this.highScore = Math.max(this.highScore, this.enemiesKilled);
         this.lives = 0;
         this.music.pause();
         this.hero.body.velocity.y = -500;
@@ -192,6 +199,7 @@ GameState.prototype.constructor = GameState;
         this.gameState = GameState.STATE_START;
         this.lives = 3;
         this.maxLives = 3;
+        this.enemiesKilled = 0;
 
         this.enemies.removeAll();
 
@@ -226,6 +234,7 @@ GameState.prototype.constructor = GameState;
 
         this.hud.add(this.livesText=this.game.make.text(-GameState.GAME_HALF_WIDTH+16,-GameState.GAME_HALF_HEIGHT+64+this.hud.length*32, "Lives: ", { font: "8pt Monaco" }));
         this.hud.add(this.enemiesKilledText=this.game.make.text(-GameState.GAME_HALF_WIDTH+16,-GameState.GAME_HALF_HEIGHT+64+this.hud.length*16, "Enemies Killed: ", { font: "8pt Monaco" }));
+        this.hud.add(this.highScoreText=this.game.make.text(-GameState.GAME_HALF_WIDTH+16,-GameState.GAME_HALF_HEIGHT+64+this.hud.length*16, "High Score: ", { font: "8pt Monaco" }));
 
         this.hud.add(this.startText=this.game.make.text(0,96, "Press Space To Start", { font: "16pt Monaco", align: "center"}));
         this.hud.add(this.gameOverText=this.game.make.text(0,96, "Game Over!", { font: "16pt Monaco", align: "center"}));
@@ -475,6 +484,12 @@ GameState.prototype.constructor = GameState;
         // console.log("[GameState], update()");
 
         // console.log(this.gameState);
+
+        if (this.input.keyboard.downDuration(Phaser.Keyboard.M, 1)) {
+            this.game.sound.mute = !this.game.sound.mute;
+        }
+
+
         
         this.updateCollisions();
         if (this.gameState == GameState.STATE_PLAY) {
@@ -530,8 +545,11 @@ GameState.prototype.constructor = GameState;
     p.updateHud = function() {
         this.livesText.text = "Lives: " + this.lives + "/" + this.maxLives;
         this.enemiesKilledText.text = "Enemies Killed: " + this.enemiesKilled;
+        this.highScoreText.text = "High Score: " + this.highScore;
         
         this.startText.visible = (this.gameState == GameState.STATE_START);
+
+        this.gameOverText.text = "Game Over!\nHigh Score:" + this.highScore;
         this.gameOverText.visible = (this.gameState == GameState.STATE_GAMEOVER);
 
     };
@@ -888,6 +906,8 @@ GameState.prototype.constructor = GameState;
             this.enemies.remove(enemy, true);
             this.enemiesKilled++;
 
+            this.highScore = Math.max(this.enemiesKilled, this.highScore);
+
             this.game.sound.play(this.game.rnd.pick(["enemy-burst-1", "enemy-burst-2", "enemy-burst-3"]), 0.2);
 
             
@@ -904,6 +924,8 @@ GameState.prototype.constructor = GameState;
                 enemy.body.velocity.x = -120;
                 bullet.position.x -= 16;
             }
+
+            this.game.sound.play(this.game.rnd.pick(["enemy-bump-1", "enemy-bump-2"]), 0.2);
         }
 
         bullet.body = null;
@@ -950,6 +972,8 @@ GameState.prototype.constructor = GameState;
 
         bullet.isActivated = true;
         bullet.tint = 0xff0000;
+
+        this.game.sound.play(this.game.rnd.pick(["enemy-bump-1", "enemy-bump-2"]), 0.2);
 
         if (paddle.hitTimer === 0) {
             paddle.storedVelocityY = paddle.body.velocity.y;
