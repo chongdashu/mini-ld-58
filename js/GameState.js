@@ -31,6 +31,8 @@ GameState.prototype.constructor = GameState;
     GameState.STATE_PLAY = "play";
     GameState.STATE_GAMEOVER = "gameover";
 
+
+
     // Variables
     // --------------
     p.gameState = GameState.STATE_START;
@@ -46,6 +48,8 @@ GameState.prototype.constructor = GameState;
     p.retries = 0;
     p.lives = 0;
     p.maxLives = 3;
+    p.isMusicEnabled = true;
+    p.isSoundEnabled = true;
 
     // Timers 
     // ------
@@ -70,6 +74,7 @@ GameState.prototype.constructor = GameState;
     p.paddles = null;
     p.enemies = null;
     p.hud = null;
+    p.platforms = null;
 
     // Audio
     // -----
@@ -133,6 +138,10 @@ GameState.prototype.constructor = GameState;
         this.hero.body.collideWorldBounds = false;
         this.hero.body.angularVelocity = Phaser.Math.degToRad(7200);
 
+        this.paddles.forEach(function (paddle) {
+            paddle.body.reset();
+        });
+
         this.gameState = GameState.STATE_GAMEOVER;
 
         
@@ -150,6 +159,7 @@ GameState.prototype.constructor = GameState;
         this.createKeyCapture();
         this.createBackground();
         this.createGround();
+        this.createPlatforms();
         this.createHero();
         this.createEnemies();
         this.createBullets();
@@ -162,6 +172,9 @@ GameState.prototype.constructor = GameState;
         // this.createHeightMarkers();
     };
 
+
+
+
     p.createMusic = function() {
         this.music = this.game.sound.add("music",0.3,true);
     };
@@ -172,6 +185,14 @@ GameState.prototype.constructor = GameState;
         this.gameState = GameState.STATE_START;
         this.lives = 3;
         this.maxLives = 3;
+
+        this.enemies.removeAll();
+
+        this.rightPaddle.position.set (GameState.GAME_HALF_WIDTH, 0);
+        this.leftPaddle.position.set (-GameState.GAME_HALF_WIDTH, 0);
+
+        this.rightPaddle.position.x -= this.rightPaddle.width;
+        this.leftPaddle.position.x += this.leftPaddle.width;
 
     };
 
@@ -249,6 +270,7 @@ GameState.prototype.constructor = GameState;
             paddle.body.immovable = true;
             paddle.anchor.set(0.5);
             paddle.body.mass = 10000;
+            paddle.hitTimer = 0;
         });
 
 
@@ -292,6 +314,44 @@ GameState.prototype.constructor = GameState;
         this.backgroundMountain.anchor.set(0.5, 0.5);
     };
 
+    p.createPlatforms = function() {
+        this.platforms = this.game.add.group();
+        this.platforms.enableBody = true;
+        this.platforms.physicsBodyType = Phaser.Physics.ARCADE;
+
+        var map = [
+            1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ];
+
+        var platform = null;
+        for (var i = 0; i < map.length; i++) {
+            if (map[i] == 1) {
+                var x = i % 15;
+                var y = Math.floor(i / 15);
+
+                console.log ("tile at [%s,%s]", x, y);
+                platform = this.platforms.create(-GameState.GAME_HALF_WIDTH + x*32 + 16, -GameState.GAME_HALF_HEIGHT + y*32+16, "tile-platform");
+                platform.anchor.set(0.5);
+                platform.name = "platform_" + i;
+                platform.body.allowGravity = false;
+                platform.body.immovable = true;
+
+
+
+            }
+        }
+
+    };
+
     p.createGround = function() {
         this.ground = this.game.add.group();
         this.ground.enableBody = true;
@@ -304,13 +364,17 @@ GameState.prototype.constructor = GameState;
             ground.body.setSize(32, 32, 0, 16);
         }
 
-        this.platform = this.ground.create(0,32, "tile-platform");
-        this.platform.name = "platform";
-        this.platform.anchor.set(0.5);
 
+
+        // this.platform = this.ground.create(0,32, "tile-platform");
+        // this.platform.name = "platform";
+        // this.platform.anchor.set(0.5);
 
         this.ground.setAll("body.allowGravity", false);
         this.ground.setAll("body.immovable", true);
+
+
+
            
     };
 
@@ -332,7 +396,7 @@ GameState.prototype.constructor = GameState;
         enemy.body.velocity.set(velocityX, velocityY);
         enemy.body.collideWorldBounds = true;
         enemy.body.bounce.set(1,0);
-        enemy.body.setSize(16, 16, 0, 0);
+        enemy.body.setSize(16, 16, 0, 8);
         enemy.anchor.set(0.5);
         enemy.defaultVelocityX = velocityX;
 
@@ -401,7 +465,7 @@ GameState.prototype.constructor = GameState;
         if (this.gameState == GameState.STATE_PLAY) {
 
             this.updateTimers();
-            this.updatePlatform();
+            // this.updatePlatform();
             this.updateHero();
             this.updateEnemies();
             this.updatePaddles();
@@ -428,13 +492,13 @@ GameState.prototype.constructor = GameState;
 
     p.updatePlatform = function() {
         
-        if (this.platform.body.touching.up) {
-            this.platform.isPlayerTouching = true;
+        // if (this.platform.body.touching.up) {
+        //     this.platform.isPlayerTouching = true;
             
-        }
-        else if (this.platform.isPlayerTouching && !this.platform.body.touching.up) {
-            this.platform.kill();
-        }
+        // }
+        // else if (this.platform.isPlayerTouching && !this.platform.body.touching.up) {
+        //     this.platform.kill();
+        // }
     };
 
     p.updateTimers = function() {
@@ -442,8 +506,8 @@ GameState.prototype.constructor = GameState;
         if (this.enemySpawnTimer <= 0) {
             this.createEnemy(
                 this.game.rnd.pick(["enemy-blue"]),
-                this.game.rnd.pick([-200,200]), -32,
-                this.game.rnd.pick([-120,120]), 0);
+                this.game.rnd.pick([-32,32]), -GameState.GAME_HALF_HEIGHT, // position
+                this.game.rnd.pick([-120,120]), 0); // velocity
             this.resetEnemySpawnTimer();
         }
     };
@@ -471,6 +535,24 @@ GameState.prototype.constructor = GameState;
     p.updatePaddles = function() {
         var _this = this;
         this.paddles.forEach(function(paddle) {
+
+            paddle.hitTimer = Math.max(0, paddle.hitTimer - _this.game.time.elapsed);
+
+            
+
+            if (paddle.hitTimer > 0 ) {
+                paddle.body.velocity.y=0;
+                return;
+            }
+            else {
+                if (paddle.storedVelocityY) {
+
+                    paddle.body.velocity.y = Math.sign(paddle.storedVelocityY)*_this.paddleSpeedDefault;
+                    paddle.storedVelocityY = null;
+                }
+            
+            }
+
             if (paddle.position.y - paddle.height/2 <= -GameState.GAME_HALF_HEIGHT) {
                 paddle.body.velocity.y = 100;
             }
@@ -649,6 +731,14 @@ GameState.prototype.constructor = GameState;
         this.hero.shootTimer = Math.max(0,this.hero.shootTimer-this.game.time.elapsed);
 
         // console.log(this.hero.shootTimer);
+
+
+        if (this.hero.hurtTimer > 0 ) {
+            this.hero.tint = 0xff0000 * (this.hero.hurtTimer/3000);
+        }
+        else {
+            this.hero.tint = 0xffffff;
+        }
         
 
         // Jumping
@@ -701,11 +791,14 @@ GameState.prototype.constructor = GameState;
     p.updateCollisions = function() {
         this.game.physics.arcade.collide(this.hero, this.ground, this.onHeroGroundCollide, this.onHeroGroundProcess, this);
         this.game.physics.arcade.collide(this.hero, this.paddles, this.onHeroPaddleCollide, this.onHeroPaddleProcess, this);
+        this.game.physics.arcade.collide(this.hero, this.enemies, this.onHeroEnemyCollide, this.onHeroEnemyProcess, this);
+        this.game.physics.arcade.collide(this.hero, this.platforms);
         this.game.physics.arcade.collide(this.paddles, this.ground, this.onPaddleGroundCollide, null, this);
         this.game.physics.arcade.collide(this.bullets, this.paddles, this.onBulletPaddleCollide, null, this);
         this.game.physics.arcade.collide(this.bullets, this.enemies, this.onBulletEnemyCollide, null, this);
         this.game.physics.arcade.collide(this.enemies, this.ground);
-        this.game.physics.arcade.collide(this.hero, this.enemies, this.onHeroEnemyCollide, this.onHeroEnemyProcess, this);
+        this.game.physics.arcade.collide(this.enemies, this.platforms);
+        
         // this.game.physics.arcade.collide(this.bullets, this.ground, this.onBulletGroundCollide, null, this);
     };
 
@@ -743,7 +836,7 @@ GameState.prototype.constructor = GameState;
             
         }
 
-        else if (hero.body.touching.top) {
+        else if (hero.body.touching.up) {
             hero.body.velocity.x = -200*Math.cos(Phaser.Math.degToRad(45));
             enemy.body.velocity.x = 120;
             if (hero.hurtTimer === 0){
@@ -787,6 +880,7 @@ GameState.prototype.constructor = GameState;
 
         bullet.body = null;
         bullet.play("default", null, false, true);
+        bullet.tint = 0xffffff;
         
     };
 
@@ -827,6 +921,13 @@ GameState.prototype.constructor = GameState;
         this.paddleEmitter.start(true, 2000, null, 5);
 
         bullet.isActivated = true;
+        bullet.tint = 0xff0000;
+
+        if (paddle.hitTimer === 0) {
+            paddle.storedVelocityY = paddle.body.velocity.y;
+        }
+        paddle.hitTimer = Math.min(3000, paddle.hitTimer += 750);
+        
     };
 
     p.onPaddleGroundCollide = function(paddle, ground) {
