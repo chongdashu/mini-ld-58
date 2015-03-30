@@ -132,6 +132,9 @@ GameState.prototype.constructor = GameState;
         this.hero.body.velocity.y = -500;
         this.hero.body.collideWorldBounds = false;
         this.hero.body.angularVelocity = Phaser.Math.degToRad(7200);
+
+        this.gameState = GameState.STATE_GAMEOVER;
+
         
     };
 
@@ -160,24 +163,30 @@ GameState.prototype.constructor = GameState;
     };
 
     p.createMusic = function() {
-        this.music = this.game.sound.play("music",0.3,true);
+        this.music = this.game.sound.add("music",0.3,true);
     };
 
     p.reset = function() {
+        this.hero.body.reset();
         this.hero.visible = false;
         this.gameState = GameState.STATE_START;
         this.lives = 3;
         this.maxLives = 3;
+
     };
 
     p.doStart = function() {
         console.log("[GameState], start();");
         this.rightPaddle.body.velocity.y = this.paddleSpeedDefault;
         this.leftPaddle.body.velocity.y = this.paddleSpeedDefault;
-        this.hero.visible = true;
+       
 
         this.gameState = GameState.STATE_PLAY;
+        this.hero.reset(0,0);
+        this.hero.rotation = 0;
         this.hero.position.set(0,-100);
+        this.music.play();
+
     };
 
     p.resetEnemySpawnTimer = function() {
@@ -191,8 +200,10 @@ GameState.prototype.constructor = GameState;
         this.hud.add(this.enemiesKilledText=this.game.make.text(-GameState.GAME_HALF_WIDTH+64,-GameState.GAME_HALF_HEIGHT+32+this.hud.length*16, "Enemies Killed: ", { font: "8pt Monaco" }));
 
         this.hud.add(this.startText=this.game.make.text(0,96, "Press Space To Start", { font: "16pt Monaco", align: "center"}));
+        this.hud.add(this.gameOverText=this.game.make.text(0,96, "Game Over!", { font: "16pt Monaco", align: "center"}));
         
         this.startText.anchor.set(0.5);
+        this.gameOverText.anchor.set(0.5);
     };
 
     // This function draws horizontal lines across the stage
@@ -398,10 +409,16 @@ GameState.prototype.constructor = GameState;
             this.updateInput();
         }
 
-    
         else if (this.gameState == GameState.STATE_START) {
             if (this.input.keyboard.downDuration(Phaser.Keyboard.SPACEBAR, 1)) {
                 this.doStart();
+            }
+        }
+
+        else if (this.gameState == GameState.STATE_GAMEOVER) {
+            if (this.hero.position.y > GameState.GAME_HALF_HEIGHT) {
+                this.reset();
+
             }
         }
 
@@ -413,7 +430,7 @@ GameState.prototype.constructor = GameState;
         
         if (this.platform.body.touching.up) {
             this.platform.isPlayerTouching = true;
-            console.log(this.platform.body);
+            
         }
         else if (this.platform.isPlayerTouching && !this.platform.body.touching.up) {
             this.platform.kill();
@@ -436,6 +453,8 @@ GameState.prototype.constructor = GameState;
         this.enemiesKilledText.text = "Enemies Killed: " + this.enemiesKilled;
         
         this.startText.visible = (this.gameState == GameState.STATE_START);
+        this.gameOverText.visible = (this.gameState == GameState.STATE_GAMEOVER);
+
     };
 
     p.updateEnemies = function() {
