@@ -37,6 +37,8 @@ GameState.prototype.constructor = GameState;
     p.paddleSpeedDefault = 100;
     p.autoPaddles = true;
     p.jumpSpeed = 400;
+    p.score = 0;
+    p.retries = 0;
 
     // Sprites
     // -------
@@ -53,6 +55,7 @@ GameState.prototype.constructor = GameState;
     p.bullets = null;
     p.paddles = null;
     p.enemies = null;
+    p.hud = null;
 
     // Emitters
     // --------
@@ -84,6 +87,7 @@ GameState.prototype.constructor = GameState;
         this.game.load.image("mountain", "assets/mountain.png");
         this.game.load.image("tile", "assets/tile.png");
         this.game.load.image("paddle", "assets/paddle.png");
+        this.game.load.image("tile-platform", "assets/tile-platform.png");
 
         game.load.image('paddle-particle-1', 'assets/paddle-particle-1.png');
         game.load.image('paddle-particle-2', 'assets/paddle-particle-2.png');
@@ -94,6 +98,7 @@ GameState.prototype.constructor = GameState;
         this.game.load.spritesheet("cowboy", "assets/cowboy-lg.png", 64, 64, 26);
         this.game.load.spritesheet("bullet", "assets/projectile.png", 16,16);
         this.game.load.spritesheet("enemy-blue", "assets/enemy-blue.png", 32, 32);
+
         
     };
 
@@ -113,8 +118,13 @@ GameState.prototype.constructor = GameState;
         this.createBullets();
         this.createPaddles();
         this.createEmitters();
+        this.createHud();
 
         // this.createHeightMarkers();
+    };
+
+    p.createHud = function() {
+        
     };
 
     // This function draws horizontal lines across the stage
@@ -216,6 +226,11 @@ GameState.prototype.constructor = GameState;
             ground.body.setSize(32, 32, 0, 16);
         }
 
+        var platform = this.ground.create(0,32, "tile-platform");
+        platform.name = "platform";
+        platform.anchor.set(0.5);
+
+
         this.ground.setAll("body.allowGravity", false);
         this.ground.setAll("body.immovable", true);
            
@@ -239,7 +254,9 @@ GameState.prototype.constructor = GameState;
         enemy.body.velocity.set(velocityX, velocityY);
         enemy.body.collideWorldBounds = true;
         enemy.body.bounce.set(1,0);
+        enemy.body.setSize(16, 16, 0, 0);
         enemy.anchor.set(0.5);
+        enemy.defaultVelocityX = velocityX;
 
     };
 
@@ -537,21 +554,33 @@ GameState.prototype.constructor = GameState;
         this.game.physics.arcade.collide(this.hero, this.paddles, this.onHeroPaddleCollide, this.onHeroPaddlePreCollide, this);
         this.game.physics.arcade.collide(this.paddles, this.ground, this.onPaddleGroundCollide, null, this);
         this.game.physics.arcade.collide(this.bullets, this.paddles, this.onBulletPaddleCollide, null, this);
+        this.game.physics.arcade.collide(this.bullets, this.enemies, this.onBulletEnemyCollide, null, this);
         this.game.physics.arcade.collide(this.enemies, this.ground);
         this.game.physics.arcade.collide(this.hero, this.enemies, this.onHeroEnemyCollide, null, this);
         // this.game.physics.arcade.collide(this.bullets, this.ground, this.onBulletGroundCollide, null, this);
     };
 
     p.onHeroEnemyCollide = function(hero, enemy) {
-        if (hero.body.touching.left) {
-            hero.position.y -= 1;
-            hero.body.velocity.x = 200*Math.cos(Phaser.Math.degToRad(45));
-            hero.body.velocity.y = 200*-Math.sin(Phaser.Math.degToRad(45));
+        hero.position.y -= 1;
+        
+        hero.body.velocity.y = 200*-Math.sin(Phaser.Math.degToRad(45));
 
+        if (hero.hurtTimer === 0){
             hero.hurtTimer += 1000;
+        }
 
+        if (hero.body.touching.left) {
+            hero.body.velocity.x = 200*Math.cos(Phaser.Math.degToRad(45));
+            enemy.body.velocity.x = -120;
 
         }
+        else if (hero.body.touching.right) {
+            hero.body.velocity.x = -200*Math.cos(Phaser.Math.degToRad(45));
+            enemy.body.velocity.x = 120;
+        }
+
+        
+        console.log(enemy.body.velocity.x);
     };
 
     p.onHeroPaddleCollide = function(hero, paddle) {
@@ -560,6 +589,27 @@ GameState.prototype.constructor = GameState;
             paddle.storedVelocityY = paddle.body.velocity.y;
             paddle.body.velocity.y = paddle.storedVelocityY * 0.95;
         }
+    };
+
+    p.onBulletEnemyCollide = function(bullet, enemy) {
+        if (bullet.isActivated) {
+            this.enemies.remove(enemy, true);
+            // enemy.body = null;
+            // enemy.kill();
+
+        }
+        else {
+            if (enemy.body.touching.left) {
+                enemy.body.velocity.x = 120;
+            }
+            else if (enemy.body.touching.right) {
+                enemy.body.velocity.x = -120;
+            }
+        }
+
+        bullet.body = null;
+        bullet.play("default", null, false, true);
+        
     };
 
     p.onBulletGroundCollide = function(bullet, ground) {
@@ -597,6 +647,8 @@ GameState.prototype.constructor = GameState;
         console.log("this.paddleEmitter=(%s,%s)", this.paddleEmitter.x, this.paddleEmitter.y);
 
         this.paddleEmitter.start(true, 2000, null, 5);
+
+        bullet.isActivated = true;
     };
 
     p.onPaddleGroundCollide = function(paddle, ground) {
@@ -635,6 +687,10 @@ GameState.prototype.constructor = GameState;
 
         this.paddles.forEach(function (paddle) {
             _this.game.debug.body(paddle);
+        });
+
+        this.enemies.forEach(function (enemy) {
+            _this.game.debug.body(enemy);
         });
 
         this.game.debug.spriteInfo(this.leftPaddle, 32, 32);
