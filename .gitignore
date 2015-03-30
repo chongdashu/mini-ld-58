@@ -1,3 +1,5 @@
 *.sublime-workspace
 exclude.txt
 upload.sh
+*.zip
+*.mp3
