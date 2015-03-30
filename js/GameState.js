@@ -83,6 +83,7 @@ GameState.prototype.constructor = GameState;
     // Emitters
     // --------
     p.paddleEmitter = null;
+    p.enemyBlueEmitter = null;
 
     // Bitmaps
     // -------
@@ -113,12 +114,18 @@ GameState.prototype.constructor = GameState;
         this.game.load.image("tile-platform", "assets/tile-platform.png");
         this.game.load.image('paddle-particle-1', 'assets/paddle-particle-1.png');
         this.game.load.image('paddle-particle-2', 'assets/paddle-particle-2.png');
-
+        this.game.load.image('enemy-blue-particle-1', 'assets/enemy-blue-particle-1.png');
+        this.game.load.image('enemy-blue-particle-2', 'assets/enemy-blue-particle-2.png');
+        this.game.load.image('enemy-blue-particle-3', 'assets/enemy-blue-particle-3.png');
+        
         // Audio
         // -----
         this.game.load.audio("shoot-1", "assets/shoot1.wav");
         this.game.load.audio("shoot-2", "assets/shoot2.wav");
         this.game.load.audio("shoot-3", "assets/shoot3.wav");
+        this.game.load.audio("enemy-burst-1", "assets/enemy-burst-1.wav");
+        this.game.load.audio("enemy-burst-2", "assets/enemy-burst-2.wav");
+        this.game.load.audio("enemy-burst-3", "assets/enemy-burst-3.wav");
         this.game.load.audio("music", "assets/music-digital-voyage.mp3");
         
         // spritesheets
@@ -217,8 +224,8 @@ GameState.prototype.constructor = GameState;
     p.createHud = function() {
         this.hud = this.game.add.group();
 
-        this.hud.add(this.livesText=this.game.make.text(-GameState.GAME_HALF_WIDTH+64,-GameState.GAME_HALF_HEIGHT+32+this.hud.length*32, "Lives: ", { font: "8pt Monaco" }));
-        this.hud.add(this.enemiesKilledText=this.game.make.text(-GameState.GAME_HALF_WIDTH+64,-GameState.GAME_HALF_HEIGHT+32+this.hud.length*16, "Enemies Killed: ", { font: "8pt Monaco" }));
+        this.hud.add(this.livesText=this.game.make.text(-GameState.GAME_HALF_WIDTH+16,-GameState.GAME_HALF_HEIGHT+64+this.hud.length*32, "Lives: ", { font: "8pt Monaco" }));
+        this.hud.add(this.enemiesKilledText=this.game.make.text(-GameState.GAME_HALF_WIDTH+16,-GameState.GAME_HALF_HEIGHT+64+this.hud.length*16, "Enemies Killed: ", { font: "8pt Monaco" }));
 
         this.hud.add(this.startText=this.game.make.text(0,96, "Press Space To Start", { font: "16pt Monaco", align: "center"}));
         this.hud.add(this.gameOverText=this.game.make.text(0,96, "Game Over!", { font: "16pt Monaco", align: "center"}));
@@ -250,6 +257,11 @@ GameState.prototype.constructor = GameState;
         this.paddleEmitter= this.game.add.emitter(0, 0, 50);
         this.paddleEmitter.makeParticles(["paddle-particle-1", "paddle-particle-2"]);
         this.paddleEmitter.gravity = this.game.physics.arcade.gravity.y;
+
+        this.enemyBlueEmitter = this.game.add.emitter(0, 0, 50);
+        this.enemyBlueEmitter.minParticleSpeed.setTo(-250, -400);
+        this.enemyBlueEmitter.makeParticles(["enemy-blue-particle-1"]);
+        this.enemyBlueEmitter.gravity = this.game.physics.arcade.gravity.y;
     };
 
     p.createPaddles = function() {
@@ -320,26 +332,28 @@ GameState.prototype.constructor = GameState;
         this.platforms.physicsBodyType = Phaser.Physics.ARCADE;
 
         var map = [
-            1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1,
+            1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+            1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+            1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1,
+            1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+            1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+            1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1,
+            1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+            1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+            1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
         ];
 
         var platform = null;
         for (var i = 0; i < map.length; i++) {
             if (map[i] == 1) {
-                var x = i % 15;
-                var y = Math.floor(i / 15);
+                var x = i % 17;
+                var y = Math.floor(i / 17);
 
                 console.log ("tile at [%s,%s]", x, y);
-                platform = this.platforms.create(-GameState.GAME_HALF_WIDTH + x*32 + 16, -GameState.GAME_HALF_HEIGHT + y*32+16, "tile-platform");
+                platform = this.platforms.create(-GameState.GAME_HALF_WIDTH - (32) + 16 + x*32 , -GameState.GAME_HALF_HEIGHT - (32) + 16 + y*32, "tile-platform");
                 platform.anchor.set(0.5);
                 platform.name = "platform_" + i;
                 platform.body.allowGravity = false;
@@ -396,7 +410,7 @@ GameState.prototype.constructor = GameState;
         enemy.body.velocity.set(velocityX, velocityY);
         enemy.body.collideWorldBounds = true;
         enemy.body.bounce.set(1,0);
-        enemy.body.setSize(16, 16, 0, 8);
+        enemy.body.setSize(16, 24, 0, 0);
         enemy.anchor.set(0.5);
         enemy.defaultVelocityX = velocityX;
 
@@ -437,6 +451,7 @@ GameState.prototype.constructor = GameState;
 
         var bullet = this.bullets.create(x, y, "bullet");
         bullet.anchor.set(0.5);
+        bullet.body.setSize(8, 8, 0, 0);
         bullet.body.allowGravity = false;
         bullet.body.velocity.set(velocityX, velocityY);
         // bullet.body.collideWorldBounds = true;
@@ -627,7 +642,7 @@ GameState.prototype.constructor = GameState;
         // Debug 
         // -----
         if (this.input.keyboard.downDuration(Phaser.Keyboard.E, 1)) {
-            this.createEnemy("enemy-blue", 0, 0, -120, 0);
+            this.createEnemy("enemy-blue", 8, 0, -120, 0);
         }
 
         if (this.input.keyboard.downDuration(Phaser.Keyboard.G, 1)) {
@@ -792,12 +807,14 @@ GameState.prototype.constructor = GameState;
         this.game.physics.arcade.collide(this.hero, this.ground, this.onHeroGroundCollide, this.onHeroGroundProcess, this);
         this.game.physics.arcade.collide(this.hero, this.paddles, this.onHeroPaddleCollide, this.onHeroPaddleProcess, this);
         this.game.physics.arcade.collide(this.hero, this.enemies, this.onHeroEnemyCollide, this.onHeroEnemyProcess, this);
-        this.game.physics.arcade.collide(this.hero, this.platforms);
+        this.game.physics.arcade.collide(this.hero, this.platforms, null, this.onHeroGroundProcess, this);
         this.game.physics.arcade.collide(this.paddles, this.ground, this.onPaddleGroundCollide, null, this);
         this.game.physics.arcade.collide(this.bullets, this.paddles, this.onBulletPaddleCollide, null, this);
         this.game.physics.arcade.collide(this.bullets, this.enemies, this.onBulletEnemyCollide, null, this);
         this.game.physics.arcade.collide(this.enemies, this.ground);
         this.game.physics.arcade.collide(this.enemies, this.platforms);
+        this.game.physics.arcade.collide(this.enemyBlueEmitter, this.ground);
+        this.game.physics.arcade.collide(this.enemyBlueEmitter, this.platforms);
         
         // this.game.physics.arcade.collide(this.bullets, this.ground, this.onBulletGroundCollide, null, this);
     };
@@ -863,8 +880,17 @@ GameState.prototype.constructor = GameState;
 
     p.onBulletEnemyCollide = function(bullet, enemy) {
         if (bullet.isActivated) {
+            this.enemyBlueEmitter.x = (bullet.x + enemy.x)/2;
+            this.enemyBlueEmitter.y = (bullet.y + enemy.y)/2;
+
+            this.enemyBlueEmitter.start(true, 5000, null, 10);
+            this.enemyBlueEmitter.bounce.setTo(0.5, 0.5);
             this.enemies.remove(enemy, true);
             this.enemiesKilled++;
+
+            this.game.sound.play(this.game.rnd.pick(["enemy-burst-1", "enemy-burst-2", "enemy-burst-3"]), 0.2);
+
+            
             // enemy.body = null;
             // enemy.kill();
 
@@ -872,9 +898,11 @@ GameState.prototype.constructor = GameState;
         else {
             if (enemy.body.touching.left) {
                 enemy.body.velocity.x = 120;
+                bullet.position.x += 16;
             }
             else if (enemy.body.touching.right) {
                 enemy.body.velocity.x = -120;
+                bullet.position.x -= 16;
             }
         }
 
@@ -926,7 +954,7 @@ GameState.prototype.constructor = GameState;
         if (paddle.hitTimer === 0) {
             paddle.storedVelocityY = paddle.body.velocity.y;
         }
-        paddle.hitTimer = Math.min(3000, paddle.hitTimer += 750);
+        paddle.hitTimer = Math.min(3000, paddle.hitTimer += 850);
         
     };
 
@@ -974,6 +1002,10 @@ GameState.prototype.constructor = GameState;
 
         this.enemies.forEach(function (enemy) {
             _this.game.debug.body(enemy);
+        });
+
+        this.bullets.forEach(function (bullet) {
+            _this.game.debug.body(bullet);
         });
 
         this.game.debug.spriteInfo(this.leftPaddle, 32, 32);
